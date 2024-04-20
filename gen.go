@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gopcp.v2/chapter4/loadgen/lib"
-	"gopcp.v2/helper/log"
+	"loadgen/lib"
+	"loadgen/log"
 )
 
 // 日志记录器。

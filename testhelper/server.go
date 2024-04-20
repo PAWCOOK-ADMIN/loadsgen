@@ -5,11 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"loadgen/log"
 	"net"
 	"strconv"
 	"sync/atomic"
-
-	"gopcp.v2/helper/log"
 )
 
 // 日志记录器。

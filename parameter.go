@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"loadgen/lib"
 	"strings"
 	"time"
-
-	"gopcp.v2/chapter4/loadgen/lib"
 )
 
 // ParamSet 代表了载荷发生器参数的集合。

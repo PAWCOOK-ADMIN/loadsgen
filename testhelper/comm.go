@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	loadgenlib "gopcp.v2/chapter4/loadgen/lib"
+	loadgenlib "loadgen/lib"
 )
 
 const (
