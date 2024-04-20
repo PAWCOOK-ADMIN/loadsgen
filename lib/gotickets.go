@@ -23,7 +23,7 @@ type GoTickets interface {
 type myGoTickets struct {
 	total    uint32        // 票的总数。
 	ticketCh chan struct{} // 票的容器。
-	active   bool          // 票池是否已被激活。
+	active   bool          // 票池是否已被激活。一旦票池被正确地初始化，该值就应该为true
 }
 
 // NewGoTickets 会新建一个Goroutine票池。

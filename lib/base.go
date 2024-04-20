@@ -55,7 +55,7 @@ func GetRetCodePlain(code RetCode) string {
 
 // CallResult 表示调用结果的结构。
 type CallResult struct {
-	ID     int64         // ID。
+	ID     int64         // ID。对于同一个载荷而言，其请求、响应和调用结果中，ID字段的值都是一致的
 	Req    RawReq        // 原生请求。
 	Resp   RawResp       // 原生响应。
 	Code   RetCode       // 响应代码。
