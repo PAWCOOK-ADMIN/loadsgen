@@ -227,9 +227,9 @@ func (gen *myGenerator) Start() bool {
 	// 设定节流阀。
 	var throttle <-chan time.Time
 	if gen.lps > 0 {
-		interval := time.Duration(1e9 / gen.lps)
+		interval := time.Duration(1e9 / gen.lps) // 即发送一个载荷需要的时间
 		logger.Infof("Setting throttle (%v)...", interval)
-		throttle = time.Tick(interval)
+		throttle = time.Tick(interval) // 单位ns。创建了一个周期性的定时器，并返回其通道C
 	}
 
 	// 初始化上下文和取消函数。
@@ -240,7 +240,7 @@ func (gen *myGenerator) Start() bool {
 	gen.callCount = 0
 
 	// 设置状态为已启动。
-	atomic.StoreUint32(&gen.status, lib.STATUS_STARTED)
+	atomic.StoreUint32(&gen.status, lib.STATUS_STARTED) // 原子操作，原子性地将一个无符号 32 位整数（uint32）存储到指定内存地址的函数
 
 	go func() {
 		// 生成并发送载荷。
