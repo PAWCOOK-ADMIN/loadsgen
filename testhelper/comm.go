@@ -19,7 +19,7 @@ const (
 // operators 代表操作符切片。
 var operators = []string{"+", "-", "*", "/"}
 
-// TCPComm 表示TCP通讯器的结构。
+// TCPComm 表示TCP通讯器的结构。被测试软件的网络地址
 type TCPComm struct {
 	addr string
 }
@@ -35,7 +35,7 @@ func (comm *TCPComm) BuildReq() loadgenlib.RawReq {
 	sreq := ServerReq{
 		ID: id,
 		Operands: []int{
-			int(rand.Int31n(1000) + 1),
+			int(rand.Int31n(1000) + 1), // Int31n 是一个随机数生成器，可以返回一个在 [0, n) 范围内的随机数
 			int(rand.Int31n(1000) + 1)},
 		Operator: func() string {
 			return operators[rand.Int31n(100)%4]
@@ -51,7 +51,7 @@ func (comm *TCPComm) BuildReq() loadgenlib.RawReq {
 
 // Call 会发起一次通讯。
 func (comm *TCPComm) Call(req []byte, timeoutNS time.Duration) ([]byte, error) {
-	conn, err := net.DialTimeout("tcp", comm.addr, timeoutNS)
+	conn, err := net.DialTimeout("tcp", comm.addr, timeoutNS) // 建立一个TCP连接
 	if err != nil {
 		return nil, err
 	}
@@ -63,12 +63,12 @@ func (comm *TCPComm) Call(req []byte, timeoutNS time.Duration) ([]byte, error) {
 }
 
 // CheckResp 会检查响应内容。
-func (comm *TCPComm) CheckResp(
-	rawReq loadgenlib.RawReq, rawResp loadgenlib.RawResp) *loadgenlib.CallResult {
+func (comm *TCPComm) CheckResp(rawReq loadgenlib.RawReq, rawResp loadgenlib.RawResp) *loadgenlib.CallResult {
 	var commResult loadgenlib.CallResult
 	commResult.ID = rawResp.ID
 	commResult.Req = rawReq
 	commResult.Resp = rawResp
+
 	var sreq ServerReq
 	err := json.Unmarshal(rawReq.Req, &sreq)
 	if err != nil {
@@ -77,6 +77,7 @@ func (comm *TCPComm) CheckResp(
 			fmt.Sprintf("Incorrectly formatted Req: %s!\n", string(rawReq.Req))
 		return &commResult
 	}
+
 	var sresp ServerResp
 	err = json.Unmarshal(rawResp.Resp, &sresp)
 	if err != nil {
@@ -85,6 +86,7 @@ func (comm *TCPComm) CheckResp(
 			fmt.Sprintf("Incorrectly formatted Resp: %s!\n", string(rawResp.Resp))
 		return &commResult
 	}
+
 	if sresp.ID != sreq.ID {
 		commResult.Code = loadgenlib.RET_CODE_ERROR_RESPONSE
 		commResult.Msg =
@@ -130,7 +132,7 @@ func read(conn net.Conn, delim byte) ([]byte, error) {
 
 // write 会向连接写数据，并在最后追加参数delim代表的字节。
 func write(conn net.Conn, content []byte, delim byte) (int, error) {
-	writer := bufio.NewWriter(conn)
+	writer := bufio.NewWriter(conn) // 对象 writer 用于缓冲写入操作
 	n, err := writer.Write(content)
 	if err == nil {
 		writer.WriteByte(delim)

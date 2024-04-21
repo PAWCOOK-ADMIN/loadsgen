@@ -75,14 +75,17 @@ func (gen *myGenerator) init() error {
 
 // callOne 会向载荷承受方发起一次调用。
 func (gen *myGenerator) callOne(rawReq *lib.RawReq) *lib.RawResp {
-	atomic.AddInt64(&gen.callCount, 1)
+	atomic.AddInt64(&gen.callCount, 1) // 调用计数加1
 	if rawReq == nil {
 		return &lib.RawResp{ID: -1, Err: errors.New("Invalid raw request.")}
 	}
-	start := time.Now().UnixNano()
+
+	start := time.Now().UnixNano() // 起始时间，获取纳秒级别的时间戳
 	resp, err := gen.caller.Call(rawReq.Req, gen.timeoutNS)
-	end := time.Now().UnixNano()
-	elapsedTime := time.Duration(end - start)
+	end := time.Now().UnixNano() // 结束时间
+
+	elapsedTime := time.Duration(end - start) // 耗时
+
 	var rawResp lib.RawResp
 	if err != nil {
 		errMsg := fmt.Sprintf("Sync Call Error: %s.", err)
@@ -99,7 +102,7 @@ func (gen *myGenerator) callOne(rawReq *lib.RawReq) *lib.RawResp {
 	return &rawResp
 }
 
-// asyncSend 会异步地调用承受方接口。
+// asyncSend 会异步地调用承受方接口。每次调用都会有一个专用G被启用
 func (gen *myGenerator) asyncCall() {
 	gen.tickets.Take()
 	go func() {
@@ -121,11 +124,13 @@ func (gen *myGenerator) asyncCall() {
 			}
 			gen.tickets.Return()
 		}()
-		rawReq := gen.caller.BuildReq()
+
+		rawReq := gen.caller.BuildReq() // 生成一个载荷
+
 		// 调用状态：0-未调用或调用中；1-调用完成；2-调用超时。
 		var callStatus uint32
-		timer := time.AfterFunc(gen.timeoutNS, func() {
-			if !atomic.CompareAndSwapUint32(&callStatus, 0, 2) {
+		timer := time.AfterFunc(gen.timeoutNS, func() { // 设置超时处理
+			if !atomic.CompareAndSwapUint32(&callStatus, 0, 2) { // 如何交换未成功，则说明载荷响应操作已完成，忽略超时处理
 				return
 			}
 			result := &lib.CallResult{
@@ -133,15 +138,17 @@ func (gen *myGenerator) asyncCall() {
 				Req:    rawReq,
 				Code:   lib.RET_CODE_WARNING_CALL_TIMEOUT,
 				Msg:    fmt.Sprintf("Timeout! (expected: < %v)", gen.timeoutNS),
-				Elapse: gen.timeoutNS,
+				Elapse: gen.timeoutNS, // 设置为最大超时时间
 			}
 			gen.sendResult(result)
 		})
-		rawResp := gen.callOne(&rawReq)
+
+		rawResp := gen.callOne(&rawReq) // 发送载荷至接口
 		if !atomic.CompareAndSwapUint32(&callStatus, 0, 1) {
 			return
 		}
-		timer.Stop()
+		timer.Stop() // 响应处理前要先停掉前面启动的定时器
+
 		var result *lib.CallResult
 		if rawResp.Err != nil {
 			result = &lib.CallResult{
@@ -164,6 +171,7 @@ func (gen *myGenerator) sendResult(result *lib.CallResult) bool {
 		gen.printIgnoredResult(result, "stopped load generator")
 		return false
 	}
+
 	select {
 	case gen.resultCh <- result:
 		return true
@@ -195,16 +203,19 @@ func (gen *myGenerator) prepareToStop(ctxError error) {
 func (gen *myGenerator) genLoad(throttle <-chan time.Time) {
 	for {
 		select {
-		case <-gen.ctx.Done():
+		case <-gen.ctx.Done(): // 多个满足条件的case之间做伪随机选择时的不确定性，以使载荷发生器总能及时地停止
 			gen.prepareToStop(gen.ctx.Err())
 			return
 		default:
 		}
-		gen.asyncCall()
-		if gen.lps > 0 {
+
+		gen.asyncCall() // 发送载荷
+
+		if gen.lps > 0 { // 表示节流阀是有效并需要使用的
 			select {
 			case <-throttle:
-			case <-gen.ctx.Done():
+			// 周期性定时器
+			case <-gen.ctx.Done(): // 该通道会在上下文超时或者取消时关闭
 				gen.prepareToStop(gen.ctx.Err())
 				return
 			}
@@ -242,22 +253,26 @@ func (gen *myGenerator) Start() bool {
 	// 设置状态为已启动。
 	atomic.StoreUint32(&gen.status, lib.STATUS_STARTED) // 原子操作，原子性地将一个无符号 32 位整数（uint32）存储到指定内存地址的函数
 
-	go func() {
+	go func() { // 新建一个协程启动载荷发生器
 		// 生成并发送载荷。
 		logger.Infoln("Generating loads...")
 		gen.genLoad(throttle)
-		logger.Infof("Stopped. (call count: %d)", gen.callCount)
+		logger.Infof("Stopped. (call count: %d)", gen.callCount) // 打印调用的总次数
 	}()
-	return true
+
+	return true // 返回
 }
 
+// 手动停止
 func (gen *myGenerator) Stop() bool {
 	if !atomic.CompareAndSwapUint32(
 		&gen.status, lib.STATUS_STARTED, lib.STATUS_STOPPING) {
 		return false
 	}
-	gen.cancelFunc()
-	for {
+
+	gen.cancelFunc() // 执行此方法可以让ctx字段发出停止“信号”
+
+	for { // 不断检查状态的变更
 		if atomic.LoadUint32(&gen.status) == lib.STATUS_STOPPED {
 			break
 		}

@@ -13,12 +13,12 @@ var printDetail = false
 
 func TestStart(t *testing.T) {
 
-	// 初始化服务器。
+	// 启动被测试服务器。
 	server := helper.NewTCPServer()
 	defer server.Close()
 	serverAddr := "127.0.0.1:8080"
 	t.Logf("Startup TCP server(%s)...\n", serverAddr)
-	err := server.Listen(serverAddr)
+	err := server.Listen(serverAddr) // 监听本机的8080端口
 	if err != nil {
 		t.Fatalf("TCP Server startup failing! (addr=%s)!\n", serverAddr)
 	}
@@ -45,8 +45,8 @@ func TestStart(t *testing.T) {
 
 	// 显示结果。
 	countMap := make(map[loadgenlib.RetCode]int)
-	for r := range pset.ResultCh {
-		countMap[r.Code] = countMap[r.Code] + 1
+	for r := range pset.ResultCh { // 从结果通道中获取数据（只有载荷发生器停止，for语句才会停止执行）
+		countMap[r.Code] = countMap[r.Code] + 1 // 为响应结果分类并计数
 		if printDetail {
 			t.Logf("Result: ID=%d, Code=%d, Msg=%s, Elapse=%v.\n",
 				r.ID, r.Code, r.Msg, r.Elapse)
@@ -57,8 +57,7 @@ func TestStart(t *testing.T) {
 	t.Log("RetCode Count:")
 	for k, v := range countMap {
 		codePlain := loadgenlib.GetRetCodePlain(k)
-		t.Logf("  Code plain: %s (%d), Count: %d.\n",
-			codePlain, k, v)
+		t.Logf("  Code plain: %s (%d), Count: %d.\n", codePlain, k, v)
 		total += v
 	}
 
